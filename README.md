@@ -6,7 +6,7 @@ There is an example of how to use this lib (Weight Decay):
 ```
 from regularization import *
 
-network = Network() #The nn.Module that you buildt it!
+network = Network() # The nn.Module that you buildt it!
 loss_function = nn.CrossEntropyLoss()
 
 loss_function_with_regularization = WeightDecay(network, loss_function)
@@ -15,4 +15,5 @@ loss_function_with_regularization = WeightDecay(network, loss_function)
 ```
 
 # Where are the implemented papers?
+You can read and enjoy from our review paper which is published on ... . In Table 5, you can find the regularization term and their papers.
 
