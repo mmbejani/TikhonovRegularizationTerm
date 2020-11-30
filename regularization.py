@@ -128,10 +128,9 @@ class EnhanceDiversityFeatureExtracition(nn.Module):
             sim = torch.zeros(size=[filters,filters], dtype=torch.float32, requires_grad=True)
             for i in range(filters):
                 for j in range(filters):
-                    sim[i,j] = torch.sum(conv_w[:,:,i,:] * conv_w[:,:,j,:])/(torch.norm(conv_w[:,:,i,:]) * torch.norm(conv_w[:,:,j,:]))
-                    if not (self.tau < sim[i,j] <= 1) or i == j:
-                        with torch.no_grad():
-                            sim[i,j] = 0.
+                    t_sim = torch.sum(conv_w[:,:,i,:] * conv_w[:,:,j,:])/(torch.norm(conv_w[:,:,i,:]) * torch.norm(conv_w[:,:,j,:]))
+                    if self.tau < t_sim <= 1 and i != j:
+                            sim[i,j] = t_sim
         return sim.cuda().sum()
 
     def forward(self, x_batch, y_batch):
