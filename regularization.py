@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import numpy as np
+from sklearn.decomposition import NMF
 
 
 class WeightDecay(nn.Module):
@@ -41,7 +42,6 @@ class Manifold(nn.Module):
         super().__init__()
         self.net = network
         self.loss_function = loss_function
-        self.weight_vector = self.vectorize_parameters()
         self.alpha = alpha
         self.k = k
         self.device = device
@@ -203,7 +203,7 @@ class ElasticNet(nn.Module):
      loss_function: nn.Module,
       alpha: float=5e-4,
       beta: float=5e-4):
-        super().__init__(self)
+        super().__init__()
         self.net = network
         self.loss_function = loss_function
         self.weight_vector = self.vectorize_parameters()
@@ -233,7 +233,7 @@ class TransformedL1(nn.Module):
       alpha: float=5e-4,
       mu: float=0.5,
       a: float=0.2):
-        super().__init__(self)
+        super().__init__()
         self.net = network
         self.loss_function = loss_function
         self.weight_vector = self.vectorize_parameters()
@@ -266,7 +266,7 @@ class SmoothL2(nn.Module):
      loss_function: nn.Module,
       alpha: float=5e-4,
       a: float=1.0):
-        super().__init__(self)
+        super().__init__()
         self.net = network
         self.loss_function = loss_function
         self.weight_vector = self.vectorize_parameters()
@@ -293,12 +293,6 @@ class SmoothL2(nn.Module):
         loss_value = self.loss_function(x_batch, y_batch)
         reg_value = self.smooth_function()
         return loss_value + self.alpha * reg_value
-
-import torch
-from torch import nn
-import numpy as np
-from sklearn.decomposition import NMF
-
 
 class LRFLoss(nn.Module):
     # approximation_function is a string which takes two values:
