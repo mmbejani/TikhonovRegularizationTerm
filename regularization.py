@@ -55,7 +55,7 @@ class Manifold(nn.Module):
         return y1 == y2
 
     def compute_weights_based_on_knn(self, x_batch, y_batch):
-        print('Computing K-NN ...')
+        # print('Computing K-NN ...')
         n = x_batch.size(0)
         d = torch.zeros(size=[n,n],requires_grad=False,dtype=torch.float32)
         w_int = torch.zeros(size=[n,n],requires_grad=False,dtype=torch.float32, device=self.device)
