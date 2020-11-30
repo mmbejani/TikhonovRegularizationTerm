@@ -415,3 +415,5 @@ class LRFLoss(nn.Module):
         theta = self.concat_vectors(self.vectorize_parameters(list(self.net.parameters())))
         reg = torch.norm(theta - self.theta_star)
         return loss + reg
+
+print('Hallo')
