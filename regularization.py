@@ -215,6 +215,7 @@ class TransformedL1(nn.Module):
         self.weight_vector = self.vectorize_parameters()
         self.alpha = alpha
         self.a = a
+        self.mu = mu
 
     def vectorize_parameters(self):
         parameters = list(self.net.parameters())
