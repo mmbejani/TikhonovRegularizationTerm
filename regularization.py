@@ -134,7 +134,7 @@ class EnhanceDiversityFeatureExtracition(nn.Module):
         parameters = list(self.net.parameters())
         conv_parameters = list()
         for p in parameters:
-            if len(p.size) == 4:
+            if len(p.size()) == 4:
                 conv_parameters.append(p)
         return conv_parameters
 
