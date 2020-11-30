@@ -326,15 +326,14 @@ import torch
 from torch import nn
 import numpy as np
 from sklearn.decomposition import NMF
-from torchvision.transforms import transforms
-
-from torchvision.datasets import SVHN
-SVHN()
 
 
 class LRFLoss(nn.Module):
-
-    def __init__(self, loss_function: nn.Module, net: nn.Module, verbose=False):
+    # approximation_function is a string which takes two values:
+    # 'svd' for singular values decomposition
+    # 'lrf' for low rank factorization 
+    # default value is 'svd'
+    def __init__(self, loss_function: nn.Module, net: nn.Module, approximation_function:str='svd', verbose=False):
         super().__init__()
         self.loss_function = loss_function
         self.net = net
@@ -415,5 +414,3 @@ class LRFLoss(nn.Module):
         theta = self.concat_vectors(self.vectorize_parameters(list(self.net.parameters())))
         reg = torch.norm(theta - self.theta_star)
         return loss + reg
-
-print('Hallo')
