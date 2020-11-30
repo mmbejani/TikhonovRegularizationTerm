@@ -320,3 +320,98 @@ class WeightDecay(nn.Module):
         loss_value = self.loss_function(x_batch, y_batch)
         reg_value = torch.norm(self.weight_vector)
         return loss_value + self.alpha * reg_value
+
+
+import torch
+from torch import nn
+import numpy as np
+from sklearn.decomposition import NMF
+from torchvision.transforms import transforms
+
+from torchvision.datasets import SVHN
+SVHN()
+
+
+class LRFLoss(nn.Module):
+
+    def __init__(self, loss_function: nn.Module, net: nn.Module, verbose=False):
+        super().__init__()
+        self.loss_function = loss_function
+        self.net = net
+        self.k = 1
+        self.theta_star = list()
+        self.verbose = verbose
+        p_list = list(self.net.parameters())
+        for p in p_list:
+            t = p.detach().cpu().numpy()
+            self.theta_star.append(torch.tensor(t, dtype=torch.float32))
+
+    @staticmethod
+    def vectorize_parameters(param_list):
+        theta = list()
+        for p in param_list:
+            theta.append(p.view(-1))
+        return theta
+
+    @staticmethod
+    def concat_vectors(vectors):
+        return torch.cat(vectors, dim=0)
+
+    def compute_condition_number(self, loss_value: torch.Tensor, verbose=False):
+        params = list(self.net.parameters())
+        condition_number_list = list()
+        for p in params:
+            if len(p.size()) > 1:
+                j_theta_norm = torch.norm(p.grad)
+                theta_norm = torch.norm(p)
+                condition_number = j_theta_norm * theta_norm / loss_value
+                condition_number_list.append(condition_number)
+        if verbose:
+            print('--The Condition Number of Layers is {0}'.format(str(condition_number_list)))
+
+        return condition_number_list
+
+    def approximate_lrf_tensor_kernel_filter_wise(self, w):
+        for i in range(w.shape[0]):
+            for j in range(w.shape[1]):
+                m = np.min(w[i, j, :, :])
+                w[i, j, :, :] -= m
+                mdl = NMF(n_components=self.k, max_iter=10, tol=1.0)
+                W = mdl.fit_transform(np.reshape(w[i, j, :, :], [w.shape[2], w.shape[3]]))
+                H = mdl.components_
+                w[i, j, :, :] = np.matmul(W, H) + m
+        return w
+
+    def approximation_nmf_matrix(self, w):
+        m = np.min(w)
+        w -= m
+        mdl = NMF(n_components=self.k, max_iter=20, tol=1.0)
+        W = mdl.fit_transform(w)
+        H = mdl.components_
+        return np.matmul(W, H) + m
+
+    # loss_value: Last Loss Value on a Batch
+    def update_theta_star(self, loss_value, verbose=False):
+        condition_number_list = self.compute_condition_number(loss_value)
+        max_condition_number = max(condition_number_list)
+        counter = 0
+        for i, p in enumerate(self.theta_star):
+            if len(p.size()) > 1:
+                c = condition_number_list[i] / max_condition_number
+                r = np.random.rand()
+                if r < c:
+                    w = p.detach().cpu().numpy()
+                    if len(w.shape) == 2:
+                        w = self.approximation_nmf_matrix(w)
+                    if len(w.shape) == 4:
+                        w = self.approximate_lrf_tensor_kernel_filter_wise(w)
+                    p.data = torch.tensor(w, dtype=torch.float32)
+                    counter += 1
+        if verbose:
+            print('--Number of Factorizations are {0}'.format(counter))
+
+    def forward(self, output: torch.Tensor, target: torch.Tensor):
+        loss = self.loss_function(output, target)
+        theta = self.concat_vectors(self.vectorize_parameters(list(self.net.parameters())))
+        reg = torch.norm(theta - self.theta_star)
+        return loss + reg
