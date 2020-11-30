@@ -102,7 +102,7 @@ class Manifold(nn.Module):
         reg_value = 0.
         for i in range(n):
             for j in range(n):
-                reg_value += torch.norm(y_output[i] - y_output[j]) * w_diff
+                reg_value += torch.norm(y_output[i] - y_output[j]) * w_diff[i,j]
 
         return reg_value
 
