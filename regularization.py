@@ -124,12 +124,11 @@ class EnhanceDiversityFeatureExtracition(nn.Module):
         print('Finding Similarity between Filters of the Convlution Layers ...')
         for l in range(len(self.conv_param)):
             conv_w = self.conv_param[l]
-            f1 = conv_w.size(2)
-            f2 = conv_w.size(3)
-            sim = torch.zeros(size=[f1,f2], dtype=torch.float32, requires_grad=True)
-            for i in range(f1):
-                for j in range(f2):
-                    sim[i,j] = conv_w[:,:,i,:].view(-1).dot(conv_w[:,:,:,j].view(-1))/(torch.norm(conv_w[:,:,i,:]) * torch.norm(conv_w[:,:,:,j]))
+            filters = conv_w.size(2)
+            sim = torch.zeros(size=[filters,filters], dtype=torch.float32, requires_grad=True)
+            for i in range(filters):
+                for j in range(filters):
+                    sim[i,j] = conv_w[:,:,i,:].view(-1).dot(conv_w[:,:,j,:].view(-1))/(torch.norm(conv_w[:,:,i,:]) * torch.norm(conv_w[:,:,j,:]))
                     if not (self.tau < sim[i,j] <= 1) or i == j:
                         sim[i,j] = 0.
         return sim.sum()
