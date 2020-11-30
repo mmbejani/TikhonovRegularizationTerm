@@ -9,7 +9,7 @@ class WeightDecay(nn.Module):
      network: nn.Module,
      loss_function: nn.Module,
       alpha: float=5e-4):
-        super().__init__(self)
+        super().__init__()
         self.net = network
         self.loss_function = loss_function
         self.weight_vector = self.vectorize_parameters()
