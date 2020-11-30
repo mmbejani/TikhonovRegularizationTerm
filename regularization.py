@@ -38,7 +38,7 @@ class Manifold(nn.Module):
     alpha:float = 5e-4,
     k:int = 2,
     device = 'cuda'):
-        super().__init__(self)
+        super().__init__()
         self.net = network
         self.loss_function = loss_function
         self.weight_vector = self.vectorize_parameters()
@@ -126,7 +126,7 @@ class EnhanceDiversityFeatureExtracition(nn.Module):
     loss_function: nn.Module, 
     alpha: float=5e-4,
     tau: float=0.2):
-        super().__init__(self)
+        super().__init__()
         assert 0 < tau < 1, 'The tau value should be between 0 and 1'
         self.net = network
         self.loss_function = loss_function
@@ -259,7 +259,7 @@ class TransformedL1(nn.Module):
         reg_value = self.transformed_reg()
         return loss_value + self.alpha * reg_value
 
-class WeightDecay(nn.Module):
+class SmoothL2(nn.Module):
 
     def __init__(self,
      network: nn.Module,
@@ -293,34 +293,6 @@ class WeightDecay(nn.Module):
         loss_value = self.loss_function(x_batch, y_batch)
         reg_value = self.smooth_function()
         return loss_value + self.alpha * reg_value
-
-
-class WeightDecay(nn.Module):
-
-    def __init__(self,
-     network: nn.Module,
-     loss_function: nn.Module,
-      alpha: float=5e-4):
-        super().__init__(self)
-        self.net = network
-        self.loss_function = loss_function
-        self.weight_vector = self.vectorize_parameters()
-        self.alpha = alpha
-
-    def vectorize_parameters(self):
-        parameters = list(self.net.parameters())
-        parameters_vector = list()
-        for p in parameters:
-            if len(p.size()) > 1:
-                parameters_vector.append(p.view(-1))
-        v = torch.cat(parameters_vector, dim=-1)
-        return v
-
-    def forward(self, x_batch, y_batch):
-        loss_value = self.loss_function(x_batch, y_batch)
-        reg_value = torch.norm(self.weight_vector)
-        return loss_value + self.alpha * reg_value
-
 
 import torch
 from torch import nn
