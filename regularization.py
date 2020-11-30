@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 from sklearn.decomposition import NMF
+from sklearn.neighbors import NearestNeighbors
 
 
 class WeightDecay(nn.Module):
@@ -57,41 +58,22 @@ class Manifold(nn.Module):
     def compute_weights_based_on_knn(self, x_batch, y_batch):
         # print('Computing K-NN ...')
         n = x_batch.size(0)
-        d = torch.zeros(size=[n,n],requires_grad=False,dtype=torch.float32)
         w_int = torch.zeros(size=[n,n],requires_grad=False,dtype=torch.float32, device=self.device)
         w_pen = torch.zeros(size=[n,n],requires_grad=False,dtype=torch.float32, device=self.device)
         w_diff = torch.zeros(size=[n,n],requires_grad=False,dtype=torch.float32, device=self.device)
         neighbors = list()
-        for i in range(n):
-            for j in range(n):
-                if i != j:
-                    d[i,j] = self.distance(x_batch[i], x_batch[j])
-
-        for i in range(n):
-            neighbor = list()
-            max_d = 0.
-            max_idx = 0
-            for w in range(self.k):
-                for j in range(n):
-                    if len(neighbor) < self.k:
-                        neighbor.append(j)
-                        if max_d < d[i,j]:
-                            max_d = d[i,j]
-                            max_idx = j
-                    if max_d > d[i,j]:
-                        idx = np.argmax(neighbor)
-                        neighbor[idx] = j
-                        idx = np.argmax(neighbor)
-                        max_d = np.max(neighbor)
-            neighbors.append(neighbor)
-
+        n_x_batch = x_batch.view(x_batch.size(0), -1).numpy()
+        nbrs = NearestNeighbors(self.k, radius=80.).fit(n_x_batch)
+        d, idx = nbrs.kneighbors(n_x_batch)
+        d = torch.tensor(d, dtype=torch.float32, device=self.device)
+        e_d = torch.exp(-d)
 
         for i in range(n):
             for j in range(n):
                 if j in neighbors[i] and self.are_in_a_same_class(y_batch[i], y_batch[j]):
-                    w_int[i,j] = torch.exp(-d[i,j])
+                    w_int[i,j] = e_d[i,j]
                 elif j in neighbors[i] and ~self.are_in_a_same_class(y_batch[i], y_batch[j]):
-                    w_pen[i,j] = torch.exp(-d[i,j])
+                    w_pen[i,j] = e_d[i,j]
 
         w_diff = w_int - w_diff
         return w_diff
