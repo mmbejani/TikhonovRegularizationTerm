@@ -130,8 +130,9 @@ class EnhanceDiversityFeatureExtracition(nn.Module):
                 for j in range(filters):
                     sim[i,j] = torch.sum(conv_w[:,:,i,:] * conv_w[:,:,j,:])/(torch.norm(conv_w[:,:,i,:]) * torch.norm(conv_w[:,:,j,:]))
                     if not (self.tau < sim[i,j] <= 1) or i == j:
-                        sim[i,j] = 0.
-        return sim.sum()
+                        with torch.no_grad():
+                            sim[i,j] = 0.
+        return sim.cuda().sum()
 
     def forward(self, x_batch, y_batch):
         loss_value = self.loss_function(x_batch, y_batch)
