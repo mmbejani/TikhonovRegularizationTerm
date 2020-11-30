@@ -140,7 +140,7 @@ class EnhanceDiversityFeatureExtracition(nn.Module):
 
     def compute_similarity_between_filters_and_mask(self):
         print('Finding Similarity between Filters of the Convlution Layers ...')
-        for l in len(self.conv_param):
+        for l in range(len(self.conv_param)):
             conv_w = self.conv_param[l]
             f1 = conv_w.size(2)
             f2 = conv_w.size(3)
