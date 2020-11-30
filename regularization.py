@@ -52,11 +52,7 @@ class Manifold(nn.Module):
         return torch.norm(x - y).cpu()
 
     def are_in_a_same_class(self, y1, y2):
-        bs = y1 == y2
-        b = True
-        for i in range(y1.size(0)):
-            b = bs[i] and b
-        return b
+        return y1 == y2
 
     def compute_weights_based_on_knn(self, x_batch, y_batch):
         print('Computing K-NN ...')
