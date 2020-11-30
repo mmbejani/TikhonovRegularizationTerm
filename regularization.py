@@ -64,7 +64,7 @@ class Manifold(nn.Module):
         n_x_batch = x_batch.view(x_batch.size(0), -1).cpu().numpy()
         nbrs = NearestNeighbors(x_batch.size(0), radius=80.).fit(n_x_batch)
         d, neighbors = nbrs.kneighbors(n_x_batch)
-        print(d)
+        neighbors = neighbors[:, :self.k + 1]
         d = torch.tensor(d, dtype=torch.float32, device=self.device)
         e_d = torch.exp(-d)
 
