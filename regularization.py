@@ -61,10 +61,9 @@ class Manifold(nn.Module):
         w_int = torch.zeros(size=[n,n],requires_grad=False,dtype=torch.float32, device=self.device)
         w_pen = torch.zeros(size=[n,n],requires_grad=False,dtype=torch.float32, device=self.device)
         w_diff = torch.zeros(size=[n,n],requires_grad=False,dtype=torch.float32, device=self.device)
-        neighbors = list()
         n_x_batch = x_batch.view(x_batch.size(0), -1).cpu().numpy()
         nbrs = NearestNeighbors(self.k, radius=80.).fit(n_x_batch)
-        d, idx = nbrs.kneighbors(n_x_batch)
+        d, neighbors = nbrs.kneighbors(n_x_batch)
         d = torch.tensor(d, dtype=torch.float32, device=self.device)
         e_d = torch.exp(-d)
 
