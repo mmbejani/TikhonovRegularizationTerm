@@ -297,7 +297,8 @@ class LRFLoss(nn.Module):
         loss = self.loss_function(output, target)
         theta = self.concat_vectors(self.vectorize_parameters(list(self.net.parameters())))
         reg = torch.norm(theta - self.theta_star.cuda())
-        return loss + reg
+        alpha = theta.size(0)
+        return loss + alpha * reg
 
     @staticmethod
     def vectorize_parameters(param_list):
