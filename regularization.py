@@ -406,7 +406,7 @@ class LRFLoss(nn.Module):
                         raise Exception('One (or more than one) of layers has weights with lenght 3.')
                     ts.append(torch.tensor(w, dtype=torch.float32).view(-1))
                     counter += 1
-        self.theta_star = self.vectorize_parameters(ts)
+        self.theta_star = self.concat_vectors(ts)
         if verbose:
             print('--Number of Factorizations are {0}'.format(counter))
 		
