@@ -26,7 +26,7 @@ class WeightDecay(nn.Module):
             if len(p.size()) > 1:
                 parameters_vector.append(p.view(-1))
         v = torch.cat(parameters_vector, dim=-1)
-        return v
+        return v            
 
     def forward(self, output, target):
         loss_value = self.loss_function(output, target)
@@ -287,17 +287,20 @@ class LRFLoss(nn.Module):
         self.verbose = verbose
         p_list = list(self.net.parameters())
         ts = list()
+        self.theta = list()
         for p in p_list:
             if len(p.size()) > 1:
                 t = p.detach().cpu().numpy()
                 ts.append(torch.tensor(t, dtype=torch.float32).view(-1))
+                self.theta.append(p)
         self.theta_star = self.concat_vectors(ts)
 
     def forward(self, output, target):
         loss = self.loss_function(output, target)
-        theta = self.concat_vectors(self.vectorize_parameters(list(self.net.parameters())))
+        theta = self.concat_vectors(self.vectorize_parameters(self.theta))
         reg = torch.norm(theta - self.theta_star.cuda())
-        alpha = theta.size(0)
+        alpha = 1/theta.size(0)
+        print(alpha)
         return loss + alpha * reg
 
     @staticmethod
@@ -380,6 +383,7 @@ class LRFLoss(nn.Module):
         condition_number_list = self.compute_condition_number(loss_value)
         max_condition_number = max(condition_number_list)
         ts = list()
+        self.theta = list()
         counter = 0
         for p in list(self.net.parameters()):
             if len(p.size()) > 1:
@@ -406,10 +410,9 @@ class LRFLoss(nn.Module):
                     if len(w.shape) == 3:
                         raise Exception('One (or more than one) of layers has weights with lenght 3.')
                     ts.append(torch.tensor(w, dtype=torch.float32).view(-1))
-                    
-                else:
-                    ts.append(torch.tensor(w, dtype=torch.float32).view(-1))
-                counter += 1
+                    self.theta.append(p)
+                    counter += 1
+                
         self.theta_star = self.concat_vectors(ts)
         if verbose:
             print('--Number of Factorizations are {0}'.format(counter))
