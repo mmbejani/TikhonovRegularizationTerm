@@ -360,15 +360,15 @@ class LRFLoss(nn.Module):
         reg = torch.norm(theta - self.theta_star)
         return loss + reg
 		
-class ASRLossFcuntion(nn.Module):
+class ASRLoss(nn.Module):
 
     def __init__(self, net: nn.Module, loss_function, alpha:float = 0.05):
         super().__init__()
         self.net = net
         self.loss_function = loss_function
         self.last_loss = 100000.
-		self.last_acc = 0.
-		self.alpha = alpha
+        self.last_acc = 0.
+        self.alpha = alpha
         self.w_star = self.get_w_star(list(self.net.parameters()))
 
     def forward(self, output: torch.Tensor, target: torch.Tensor):
