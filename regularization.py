@@ -297,11 +297,12 @@ class LRFLoss(nn.Module):
 
     def forward(self, output, target):
         loss = self.loss_function(output, target)
+        if not self.theta:
+            return loss
         theta = self.concat_vectors(self.vectorize_parameters(self.theta))
         reg = torch.norm(theta - self.theta_star.cuda())
-        alpha = 1/theta.size(0)
-        print(alpha)
-        return loss + alpha * reg
+        # alpha = 1e+5/theta.size(0)
+        return loss + reg
 
     @staticmethod
     def vectorize_parameters(param_list):
@@ -412,8 +413,8 @@ class LRFLoss(nn.Module):
                     ts.append(torch.tensor(w, dtype=torch.float32).view(-1))
                     self.theta.append(p)
                     counter += 1
-                
-        self.theta_star = self.concat_vectors(ts)
+        if ts:
+            self.theta_star = self.concat_vectors(ts)
         if verbose:
             print('--Number of Factorizations are {0}'.format(counter))
 		
