@@ -1,8 +1,10 @@
 import torch
 from torch import nn
 import numpy as np
+import numpy.linalg as linalg
 from sklearn.decomposition import NMF
 from sklearn.neighbors import NearestNeighbors
+
 
 
 class WeightDecay(nn.Module):
@@ -26,8 +28,8 @@ class WeightDecay(nn.Module):
         v = torch.cat(parameters_vector, dim=-1)
         return v
 
-    def forward(self, x_batch, y_batch):
-        loss_value = self.loss_function(x_batch, y_batch)
+    def forward(self, output, target):
+        loss_value = self.loss_function(output, target)
         reg_value = torch.norm(self.weight_vector)
         return loss_value + self.alpha * reg_value
 
@@ -132,8 +134,8 @@ class EnhanceDiversityFeatureExtracition(nn.Module):
                             sim[i,j] = t_sim
         return sim.cuda().sum()
 
-    def forward(self, x_batch, y_batch):
-        loss_value = self.loss_function(x_batch, y_batch)
+    def forward(self, output, target):
+        loss_value = self.loss_function(output, target)
         reg_value = self.compute_similarity_between_filters_and_mask()
         return loss_value + self.alpha * reg_value
 
@@ -166,8 +168,8 @@ class DifferentConvexFunction(nn.Module):
                 reg_value += norm_w * self.alpha
         return reg_value
 
-    def forward(self, x_batch, y_batch):
-        loss_value = self.loss_function(x_batch, y_batch)
+    def forward(self, output, target):
+        loss_value = self.loss_function(output, target)
         reg_value = self.convex_reg()
         return loss_value + reg_value
 
@@ -195,8 +197,8 @@ class ElasticNet(nn.Module):
         v = torch.cat(parameters_vector, dim=-1)
         return v
 
-    def forward(self, x_batch, y_batch):
-        loss_value = self.loss_function(x_batch, y_batch)
+    def forward(self, output, target):
+        loss_value = self.loss_function(output, target)
         reg_value = self.alpha * torch.norm(self.weight_vector) + self.beta * torch.norm(self.weight_vector, 1)
         return loss_value + reg_value
 
@@ -231,8 +233,8 @@ class TransformedL1(nn.Module):
         t_l = (((self.a + 1) * torch.abs(self.weight_vector))/ (self.a + self.weight_vector)).sum()
         return self.mu * t_l + (1 - self.mu) * w_norm
 
-    def forward(self, x_batch, y_batch):
-        loss_value = self.loss_function(x_batch, y_batch)
+    def forward(self, output, target):
+        loss_value = self.loss_function(output, target)
         reg_value = self.transformed_reg()
         return loss_value + self.alpha * reg_value
 
@@ -266,8 +268,8 @@ class SmoothL2(nn.Module):
         else:
             return -1/(8 * self.a**3) * w_norm ** 4 + 3/(4*self.a) * w_norm ** 3 + 3/8 * self.a
 
-    def forward(self, x_batch, y_batch):
-        loss_value = self.loss_function(x_batch, y_batch)
+    def forward(self, output, target):
+        loss_value = self.loss_function(output, target)
         reg_value = self.smooth_function()
         return loss_value + self.alpha * reg_value
 
@@ -357,3 +359,78 @@ class LRFLoss(nn.Module):
         theta = self.concat_vectors(self.vectorize_parameters(list(self.net.parameters())))
         reg = torch.norm(theta - self.theta_star)
         return loss + reg
+		
+class ASRLossFcuntion(nn.Module):
+
+    def __init__(self, net: nn.Module, loss_function, alpha:float = 0.05):
+        super().__init__()
+        self.net = net
+        self.loss_function = loss_function
+        self.last_loss = 100000.
+		self.last_acc = 0.
+		self.alpha = alpha
+        self.w_star = self.get_w_star(list(self.net.parameters()))
+
+    def forward(self, output: torch.Tensor, target: torch.Tensor):
+        alpha = torch.tensor(self.alpha, requires_grad=False).cuda()
+        loss_val = self.loss_function(output, target)  + alpha * torch.norm(
+        self.vectorize(list(self.net.parameters())) - self.w_star)
+        return loss_val
+
+    def get_w_star(self, t_param):
+        vec_list = list()
+        for p in t_param:
+            w = p.detach().cpu().numpy()
+            if len(w.shape) == 4:
+                w = self.approximate_svd_tensor(w)
+            vec_list.append(np.reshape(w, -1))
+        vec = np.concatenate(vec_list, axis=0)
+        vec = torch.tensor(vec, requires_grad=False).cuda()
+        return vec
+		
+	def update_w_star_by_loss(self, current_val_loss):
+		if current_val_loss < self.last_loss:
+			self.last_loss = current_val_loss.detach().cpu().numpy()
+			self.w_star = self.get_w_star(list(self.net.parameters()))
+	
+	def update_w_star_by_acc(self, current_val_acc):
+		if current_val_acc > self.last_acc:
+			self.last_acc = current_val_acc
+			self.w_star = self.get_w_star(list(self.net.parameters()))
+
+    def vectorize(self, t_param):
+        vec_list = list()
+        for p in t_param:
+            vec_list.append(p.view(-1))
+        vec = torch.cat(vec_list, dim=0)
+        return vec
+
+    def approximate_svd_tensor(self, w: np.ndarray) -> np.ndarray:
+        w_shape = w.shape
+        n1 = w_shape[0]
+        n2 = w_shape[1]
+        ds = []
+        if w_shape[2] == 1 or w_shape[3] == 1:
+            return w
+        u, s, v = linalg.svd(w)
+        for i in range(n1):
+            for j in range(n2):
+                ds.append(self.optimal_d(s[i, j]))
+        d = int(np.mean(ds))
+        w = np.matmul(u[..., 0:d], s[..., 0:d, None] * v[..., 0:d, :])
+        return w
+		
+	def approximate_svd_matrix(self, w: np.ndarray) -> np.ndarray:
+		u, s, v = linalg.svd(w)
+		d = self.optimal_d(s)
+		w = np.matmul(u[:, 0:d], np.matmul(np.diag(s[0:d]), v[:,0:d]))
+		return w
+
+    @staticmethod
+    def optimal_d(s):
+        variance = np.std(s)
+        mean = np.average(s)
+        for i in range(s.shape[0] - 1):
+            if s[i] < mean + variance:
+                return i
+        return s.shape[0] - 1
