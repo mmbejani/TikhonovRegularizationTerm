@@ -363,6 +363,15 @@ class LRFLoss(nn.Module):
         w = np.matmul(u[:, 0:d], np.matmul(np.diag(s[0:d]), v[:,0:d]))
         return w
 
+    @staticmethod
+    def optimal_d(s):
+        variance = np.std(s)
+        mean = np.average(s)
+        for i in range(s.shape[0] - 1):
+            if s[i] < mean + variance:
+                return i
+        return s.shape[0] - 1
+
     # loss_value: Last Loss Value on a Batch
     def update_theta_star(self, loss_value, verbose=False):
         condition_number_list = self.compute_condition_number(loss_value)
