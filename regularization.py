@@ -283,6 +283,7 @@ class LRFLoss(nn.Module):
         self.loss_function = loss_function
         self.net = net
         self.k = 1
+        self.af = approximation_function
         self.theta_star = list()
         self.verbose = verbose
         p_list = list(self.net.parameters())
@@ -334,6 +335,27 @@ class LRFLoss(nn.Module):
         H = mdl.components_
         return np.matmul(W, H) + m
 
+    def approximate_svd_tensor(self, w: np.ndarray) -> np.ndarray:
+        w_shape = w.shape
+        n1 = w_shape[0]
+        n2 = w_shape[1]
+        ds = []
+        if w_shape[2] == 1 or w_shape[3] == 1:
+            return w
+        u, s, v = linalg.svd(w)
+        for i in range(n1):
+            for j in range(n2):
+                ds.append(self.optimal_d(s[i, j]))
+        d = int(np.mean(ds))
+        w = np.matmul(u[..., 0:d], s[..., 0:d, None] * v[..., 0:d, :])
+        return w
+		
+    def approximate_svd_matrix(self, w):
+        u, s, v = linalg.svd(w)
+        d = self.optimal_d(s)
+        w = np.matmul(u[:, 0:d], np.matmul(np.diag(s[0:d]), v[:,0:d]))
+        return w
+
     # loss_value: Last Loss Value on a Batch
     def update_theta_star(self, loss_value, verbose=False):
         condition_number_list = self.compute_condition_number(loss_value)
@@ -346,9 +368,21 @@ class LRFLoss(nn.Module):
                 if r < c:
                     w = p.detach().cpu().numpy()
                     if len(w.shape) == 2:
-                        w = self.approximation_nmf_matrix(w)
+                        if self.ap == 'svd':
+                            w = self.approximate_svd_matrix(w)
+                        elif self.ap == 'nmf':
+                            w = self.approximation_nmf_matrix(w)
+                        else:
+                            raise Exception('The approximation function is not currect (nmf or svd)')
+                            exit(-1)
                     if len(w.shape) == 4:
-                        w = self.approximate_lrf_tensor_kernel_filter_wise(w)
+                        if self.ap == 'svd':
+                            w = self.approximate_svd_tensor(w)
+                        elif self.ap == 'nmf':
+                            w = self.approximate_lrf_tensor_kernel_filter_wise(w)
+                        else:
+                            raise Exception('The approximation function is not currect (nmf or svd)')
+                            exit(-1)
                     p.data = torch.tensor(w, dtype=torch.float32)
                     counter += 1
         if verbose:
