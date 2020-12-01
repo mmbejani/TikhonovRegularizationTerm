@@ -375,17 +375,17 @@ class LRFLoss(nn.Module):
                 if r < c:
                     w = p.detach().cpu().numpy()
                     if len(w.shape) == 2:
-                        if self.ap == 'svd':
+                        if self.af == 'svd':
                             w = self.approximate_svd_matrix(w)
-                        elif self.ap == 'nmf':
+                        elif self.af == 'nmf':
                             w = self.approximation_nmf_matrix(w)
                         else:
                             raise Exception('The approximation function is not currect (nmf or svd)')
                             exit(-1)
                     if len(w.shape) == 4:
-                        if self.ap == 'svd':
+                        if self.af == 'svd':
                             w = self.approximate_svd_tensor(w)
-                        elif self.ap == 'nmf':
+                        elif self.af == 'nmf':
                             w = self.approximate_lrf_tensor_kernel_filter_wise(w)
                         else:
                             raise Exception('The approximation function is not currect (nmf or svd)')
