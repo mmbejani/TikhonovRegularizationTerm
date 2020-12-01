@@ -288,21 +288,23 @@ class LRFLoss(nn.Module):
         self.verbose = verbose
         p_list = list(self.net.parameters())
         for p in p_list:
-            t = p.detach().cpu().numpy()
-            self.theta_star.append(torch.tensor(t, dtype=torch.float32))
+            if len(p.size()) > 1:
+                t = p.detach().cpu().numpy()
+                self.theta_star.append(torch.tensor(t, dtype=torch.float32).view(-1))
+        self.theta_star = self.concat_vectors(self.theta_star)
 
     def forward(self, output, target):
         loss = self.loss_function(output, target)
         theta = self.concat_vectors(self.vectorize_parameters(list(self.net.parameters())))
-        ts = self.concat_vectors(self.vectorize_parameters(self.theta_star)).cuda()
-        reg = torch.norm(theta - ts)
+        reg = torch.norm(theta - self.theta_star.cuda())
         return loss + reg
 
     @staticmethod
     def vectorize_parameters(param_list):
         theta = list()
         for p in param_list:
-            theta.append(p.view(-1))
+            if len(p.size()) > 1:
+                theta.append(p.view(-1))
         return theta
 
     @staticmethod
@@ -373,13 +375,14 @@ class LRFLoss(nn.Module):
         return s.shape[0] - 1
 
     # loss_value: Last Loss Value on a Batch
-    def update_theta_star(self, loss_value, verbose=False):
+    def update_w_star(self, loss_value, verbose=False):
         condition_number_list = self.compute_condition_number(loss_value)
         max_condition_number = max(condition_number_list)
+        ts = list()
         counter = 0
-        for i, p in enumerate(self.theta_star):
+        for p in list(self.net.parameters()):
             if len(p.size()) > 1:
-                c = condition_number_list[i] / max_condition_number
+                c = condition_number_list[counter] / max_condition_number
                 r = np.random.rand()
                 if r < c:
                     w = p.detach().cpu().numpy()
@@ -399,8 +402,11 @@ class LRFLoss(nn.Module):
                         else:
                             raise Exception('The approximation function is not currect (nmf or svd)')
                             exit(-1)
-                    p.data = torch.tensor(w, dtype=torch.float32)
+                    if len(w.shape) == 3:
+                        raise Exception('One (or more than one) of layers has weights with lenght 3.')
+                    ts.append(torch.tensor(w, dtype=torch.float32).view(-1))
                     counter += 1
+        self.theta_star = self.vectorize_parameters(ts)
         if verbose:
             print('--Number of Factorizations are {0}'.format(counter))
 		
