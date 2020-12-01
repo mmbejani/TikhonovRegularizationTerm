@@ -284,13 +284,13 @@ class LRFLoss(nn.Module):
         self.net = net
         self.k = 1
         self.af = approximation_function
-        self.theta_star = list()
         self.verbose = verbose
         p_list = list(self.net.parameters())
+        ts = list()
         for p in p_list:
             if len(p.size()) > 1:
                 t = p.detach().cpu().numpy()
-                self.theta_star.append(torch.tensor(t, dtype=torch.float32).view(-1))
+                ts.append(torch.tensor(t, dtype=torch.float32).view(-1))
         self.theta_star = self.concat_vectors(self.theta_star)
 
     def forward(self, output, target):
