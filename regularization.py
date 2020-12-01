@@ -387,16 +387,16 @@ class ASRLoss(nn.Module):
         vec = np.concatenate(vec_list, axis=0)
         vec = torch.tensor(vec, requires_grad=False).cuda()
         return vec
-		
-	def update_w_star_by_loss(self, current_val_loss):
-		if current_val_loss < self.last_loss:
-			self.last_loss = current_val_loss.detach().cpu().numpy()
-			self.w_star = self.get_w_star(list(self.net.parameters()))
-	
-	def update_w_star_by_acc(self, current_val_acc):
-		if current_val_acc > self.last_acc:
-			self.last_acc = current_val_acc
-			self.w_star = self.get_w_star(list(self.net.parameters()))
+
+    def update_w_star_by_loss(self, current_val_loss):
+        if current_val_loss < self.last_loss:
+            self.last_loss = current_val_loss.detach().cpu().numpy()
+            self.w_star = self.get_w_star(list(self.net.parameters()))
+
+    def update_w_star_by_acc(self, current_val_acc):
+        if current_val_acc > self.last_acc:
+            self.last_acc = current_val_acc
+            self.w_star = self.get_w_star(list(self.net.parameters()))
 
     def vectorize(self, t_param):
         vec_list = list()
@@ -420,11 +420,11 @@ class ASRLoss(nn.Module):
         w = np.matmul(u[..., 0:d], s[..., 0:d, None] * v[..., 0:d, :])
         return w
 		
-	def approximate_svd_matrix(self, w: np.ndarray) -> np.ndarray:
-		u, s, v = linalg.svd(w)
-		d = self.optimal_d(s)
-		w = np.matmul(u[:, 0:d], np.matmul(np.diag(s[0:d]), v[:,0:d]))
-		return w
+    def approximate_svd_matrix(self, w):
+        u, s, v = linalg.svd(w)
+        d = self.optimal_d(s)
+        w = np.matmul(u[:, 0:d], np.matmul(np.diag(s[0:d]), v[:,0:d]))
+        return w
 
     @staticmethod
     def optimal_d(s):
