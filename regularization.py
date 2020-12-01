@@ -384,8 +384,8 @@ class LRFLoss(nn.Module):
             if len(p.size()) > 1:
                 c = condition_number_list[counter] / max_condition_number
                 r = np.random.rand()
+                w = p.detach().cpu().numpy()
                 if r < c:
-                    w = p.detach().cpu().numpy()
                     if len(w.shape) == 2:
                         if self.af == 'svd':
                             w = self.approximate_svd_matrix(w)
@@ -405,7 +405,10 @@ class LRFLoss(nn.Module):
                     if len(w.shape) == 3:
                         raise Exception('One (or more than one) of layers has weights with lenght 3.')
                     ts.append(torch.tensor(w, dtype=torch.float32).view(-1))
-                    counter += 1
+                    
+                else:
+                    ts.append(torch.tensor(w, dtype=torch.float32).view(-1))
+                counter += 1
         self.theta_star = self.concat_vectors(ts)
         if verbose:
             print('--Number of Factorizations are {0}'.format(counter))
