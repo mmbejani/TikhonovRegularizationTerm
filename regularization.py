@@ -291,7 +291,7 @@ class LRFLoss(nn.Module):
             if len(p.size()) > 1:
                 t = p.detach().cpu().numpy()
                 ts.append(torch.tensor(t, dtype=torch.float32).view(-1))
-        self.theta_star = self.concat_vectors(self.theta_star)
+        self.theta_star = self.concat_vectors(ts)
 
     def forward(self, output, target):
         loss = self.loss_function(output, target)
