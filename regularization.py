@@ -294,7 +294,8 @@ class LRFLoss(nn.Module):
     def forward(self, output, target):
         loss = self.loss_function(output, target)
         theta = self.concat_vectors(self.vectorize_parameters(list(self.net.parameters())))
-        reg = torch.norm(theta - self.theta_star)
+        ts = self.concat_vectors(self.vectorize_parameters(self.theta_star))
+        reg = torch.norm(theta - ts)
         return loss + reg
 
     @staticmethod
