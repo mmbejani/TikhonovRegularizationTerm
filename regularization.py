@@ -362,7 +362,7 @@ class LRFLoss(nn.Module):
     def approximate_svd_matrix(self, w):
         u, s, v = linalg.svd(w)
         d = self.optimal_d(s)
-        w = np.matmul(u[:, 0:d], np.matmul(np.diag(s[0:d]), v[:,0:d]))
+        w = np.matmul(u[:, 0:d], np.matmul(np.diag(s[0:d]), v[0:d, :]))
         return w
 
     @staticmethod
