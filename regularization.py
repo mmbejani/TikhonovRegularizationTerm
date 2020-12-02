@@ -4,6 +4,7 @@ import numpy as np
 import numpy.linalg as linalg
 from sklearn.decomposition import NMF
 from sklearn.neighbors import NearestNeighbors
+from typing import Callable
 
 
 
@@ -278,13 +279,19 @@ class LRFLoss(nn.Module):
     # 'svd' for singular values decomposition
     # 'lrf' for low rank factorization 
     # default value is 'svd'
-    def __init__(self, net: nn.Module, loss_function: nn.Module, approximation_function:str='svd', verbose=False):
+    def __init__(self, 
+        net: nn.Module, 
+        loss_function: nn.Module, 
+        approximation_function:str='svd', 
+        shrink:Callable=None,
+        verbose=False):
         super().__init__()
         self.loss_function = loss_function
         self.net = net
         self.k = 1
         self.af = approximation_function
         self.verbose = verbose
+        self.shrink = shrink
         p_list = list(self.net.parameters())
         ts = list()
         self.theta = list()
@@ -380,7 +387,7 @@ class LRFLoss(nn.Module):
         return s.shape[0] - 1
 
     # loss_value: Last Loss Value on a Batch
-    def update_w_star(self, loss_value, verbose=False):
+    def update_w_star(self, loss_value, epoch=1, verbose=False):
         condition_number_list = self.compute_condition_number(loss_value)
         max_condition_number = max(condition_number_list)
         ts = list()
@@ -390,6 +397,8 @@ class LRFLoss(nn.Module):
             if len(p.size()) > 1:
                 c = condition_number_list[counter] / max_condition_number
                 r = np.random.rand()
+                if self.shrink is not None:
+                    r *= 1/(self.shrink(epoch) + 1)
                 w = p.detach().cpu().numpy()
                 if r < c:
                     if len(w.shape) == 2:
