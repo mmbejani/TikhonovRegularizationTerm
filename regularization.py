@@ -291,7 +291,7 @@ class LRFLoss(nn.Module):
         self.k = 1
         self.af = approximation_function
         self.verbose = verbose
-        self.shrink = shrink
+        self.damped = damped
         p_list = list(self.net.parameters())
         ts = list()
         self.theta = list()
@@ -397,8 +397,8 @@ class LRFLoss(nn.Module):
             if len(p.size()) > 1:
                 c = condition_number_list[counter] / max_condition_number
                 r = np.random.rand()
-                if self.shrink is not None:
-                    r *= 1/(self.shrink(epoch) + 1)
+                if self.damped is not None:
+                    r *= 1/(self.damped(epoch) + 1)
                 w = p.detach().cpu().numpy()
                 if r < c:
                     if len(w.shape) == 2:
