@@ -441,7 +441,7 @@ class ASRLoss(nn.Module):
 
     def forward(self, output, target, epoch):
         alpha = torch.tensor(self.alpha, requires_grad=False).cuda()
-        alpha *= self.damped(epoch)
+        alpha *= 1/self.damped(epoch)
         loss_val = self.loss_function(output, target)  + alpha * torch.norm(
         self.vectorize(list(self.net.parameters())) - self.w_star)
         return loss_val
