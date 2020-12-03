@@ -283,7 +283,7 @@ class LRFLoss(nn.Module):
         net: nn.Module, 
         loss_function: nn.Module, 
         approximation_function:str='svd', 
-        shrink:Callable=None,
+        damped:Callable=None,
         verbose=False):
         super().__init__()
         self.loss_function = loss_function
@@ -398,7 +398,7 @@ class LRFLoss(nn.Module):
                 c = condition_number_list[counter] / max_condition_number
                 r = np.random.rand()
                 if self.damped is not None:
-                    r *= 1/(self.damped(epoch) + 1)
+                    c *= 1/(self.damped(epoch) + 1)
                 w = p.detach().cpu().numpy()
                 if r < c:
                     if len(w.shape) == 2:
@@ -429,13 +429,14 @@ class LRFLoss(nn.Module):
 		
 class ASRLoss(nn.Module):
 
-    def __init__(self, net: nn.Module, loss_function, alpha:float = 0.05):
+    def __init__(self, net: nn.Module, loss_function, alpha:float = 0.05, damped:Callable=None):
         super().__init__()
         self.net = net
         self.loss_function = loss_function
         self.last_loss = 100000.
         self.last_acc = 0.
         self.alpha = alpha
+        self.damped = damped
         self.w_star = self.get_w_star(list(self.net.parameters()))
 
     def forward(self, output, target):
