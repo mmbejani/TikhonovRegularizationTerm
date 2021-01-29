@@ -460,7 +460,7 @@ class ASRLoss(nn.Module):
 
     def update_w_star_by_loss(self, current_val_loss:float):
         if current_val_loss < self.last_loss:
-            self.last_loss = current_val_loss.detach().cpu().numpy()
+            self.last_loss = current_val_loss
             self.w_star = self.get_w_star(list(self.net.parameters()))
 
     def update_w_star_by_acc(self, current_val_acc:float):
