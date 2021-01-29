@@ -309,7 +309,7 @@ class LRFLoss(nn.Module):
         theta = self.concat_vectors(self.vectorize_parameters(self.theta))
         reg = torch.norm(theta - self.theta_star.cuda())
         co = max(len(self.theta) - 10, 1)
-        alpha = 1/
+        alpha = 1/co
         return loss + alpha * reg
 
     @staticmethod
