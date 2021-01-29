@@ -398,7 +398,7 @@ class LRFLoss(nn.Module):
                 c = condition_number_list[counter] / max_condition_number
                 r = np.random.rand()
                 if self.damped is not None:
-                    c *= 1/(self.damped(epoch) + 1)
+                    r *= 1/(self.damped(epoch) + 1)
                 w = p.detach().cpu().numpy()
                 if r < c:
                     if len(w.shape) == 2:
