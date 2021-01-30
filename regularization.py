@@ -548,21 +548,7 @@ class AdaptiveWeightDecay(nn.Module):
         if verbose:
             print('New Value of Alpha is {0:01f}'.format(self.alpha))
 
-    def compute_loss(self, data_loader: DataLoader, dataset_tag):
-        total_loss = 0
-        counter = 0
-        with torch.no_grad():
-            for data in data_loader:
-                x = data[0].cuda()
-                y = data[1].cuda()
-                outputs = self.net(x)
-                total_loss += self.loss_function(outputs, y)
-                counter += 1
-        tqdm.write('Loss of the network on the %s data is: %f' % (dataset_tag,
-                                                                  total_loss / counter))
-        return total_loss / counter
-
     def forward(self, network_output, target):
         loss = self.loss_function(network_output, target)
         w_norm = torch.norm(self.vectorize_parameters())
-        return loss + self.alpha * w_norm, loss
+        return loss + self.alpha * w_norm
