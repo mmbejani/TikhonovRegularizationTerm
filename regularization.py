@@ -284,6 +284,7 @@ class LRFLoss(nn.Module):
         loss_function: nn.Module, 
         approximation_function:str='svd', 
         damped:Callable=None,
+        alpha:float=None,
         verbose=False):
         super().__init__()
         self.loss_function = loss_function
@@ -295,6 +296,7 @@ class LRFLoss(nn.Module):
         p_list = list(self.net.parameters())
         ts = list()
         self.theta = list()
+        self.alpha = alpha
         for p in p_list:
             if len(p.size()) > 1:
                 t = p.detach().cpu().numpy()
@@ -308,7 +310,10 @@ class LRFLoss(nn.Module):
             return loss
         theta = self.concat_vectors(self.vectorize_parameters(self.theta))
         reg = torch.norm(theta - self.theta_star.cuda())
-        co = max(len(self.theta) - 10, 1)
+        if self.alpha is None:
+            co = max(len(self.theta) - 10, 1)
+        else:
+            co = 1/self.alpha
         alpha = 1/co
         return loss + alpha * reg
 
