@@ -407,7 +407,7 @@ class LRFLoss(nn.Module):
                     r *= 1/(self.damped(epoch) + 1)
                 w = p.detach().cpu().numpy()
                 if r < c:
-                    if len(w.shape) == 2 and np.prod(w.shape) < 100000:
+                    if len(w.shape) == 2 and np.prod(w.shape) < 1000:
                         if self.af == 'svd':
                             w = self.approximate_svd_matrix(w)
                         elif self.af == 'nmf':
